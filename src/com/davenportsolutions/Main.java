@@ -7,6 +7,13 @@ package com.davenportsolutions;
  *
  * Purpose of the Problem is to model airports where every airport is traversed.
  * Prices are random for each flight.
+ *
+ * As a note to anyone reading this for reference for the assignment I believe the instructions
+ * were to throw exceptions in several locations. I chose to instead create resilience, as it responds to
+ * errors in any expected locations.
+ *
+ * I also probably should have utilized static factory methods or builder methods rather than constructors in my class
+ * but honestly I completely forgot about them when I was writing it.
  */
 
 import java.util.*;
@@ -17,37 +24,34 @@ public class Main {
     public static void main(String[] args) {
 
         // Initial Computer Generated Variables
-        final int totalAirports = airportGenerator(5000);
+        final int totalAirports = airportGenerator(100);
         final int[] prices = {19, 29, 39, 49, 59, 69};
-        final List<FlightCost> flights = generateFlights(totalAirports, prices);
+        final List<Flight> flights = generateFlights(totalAirports, prices);
 
         // Initial User Generated Variables
-        final int startingCity = getUserIntBetweenZeroAndMax(
-                "Please enter a city to start from (0-" + totalAirports + ")",
-                totalAirports);
-        final int destinationCity = getUserIntBetweenZeroAndMax(
-                "Please enter a destination city (0-" + totalAirports + ")",
-                totalAirports);
+        final int startingCity =
+                getUserIntBetweenZeroAndMax(
+                    "Please enter a city to start from (0-" + totalAirports + ")",
+                    totalAirports);
+        final int destinationCity =
+                getUserIntBetweenZeroAndMax(
+                    "Please enter a destination city (0-" + totalAirports + ")",
+                    totalAirports,
+                    startingCity);
 
-        // No Flying to the Same City!
-        if (destinationCity != startingCity){
 
-            // Finds Singular NonStopFlight
-            final FlightCost nonStopFlight = findNonStopFlight(flights, startingCity, destinationCity);
+        // Finds Singular NonStopFlight
+        final Flight nonStopFlight = findNonStopFlight(flights, startingCity, destinationCity);
 
-            // Finds all OneStopFlights
-            final List<OneStopFlight> oneStopFlights= findOneStopFlights(flights, startingCity, destinationCity);
+        // Finds all OneStopFlights
+        final List<OneStopFlight> oneStopFlights= findOneStopFlights(flights, startingCity, destinationCity);
 
-            // Narrows All OneStopFlights down the the Cheapest One
-            final OneStopFlight cheapestOneStopFlight = cheapestOneStopFlight(oneStopFlights);
+        // Narrows All OneStopFlights down the the Cheapest One
+        final OneStopFlight cheapestOneStopFlight = cheapestOneStopFlight(oneStopFlights);
 
-            // Print Out the Two Flights
-            printNonStopFlightInformation(nonStopFlight);
-            printOneStopFlightInformation(cheapestOneStopFlight);
-        }
-        else{
-            System.out.println("We don't take airplanes to where we already are...");
-        }
+        // Print Out the Two Flights
+        printNonStopFlightInformation(nonStopFlight);
+        printOneStopFlightInformation(cheapestOneStopFlight);
     }
 
     /**
@@ -83,12 +87,12 @@ public class Main {
      * Nested For Loop Creates a List of All Flights where you are not flying to the same city you are already in...
      * That's just silly.
      */
-    static List<FlightCost> generateFlights(int totalAirports, int[] prices){
-        List<FlightCost> Flights = new ArrayList<>();
+    static List<Flight> generateFlights(int totalAirports, int[] prices){
+        List<Flight> Flights = new ArrayList<>();
         for (int i = 0; i <= totalAirports; i++){
             for (int j = 0; j <= totalAirports; j++){
                 if ( j != i) {
-                    FlightCost thisFlight = new FlightCost(i, j, randomPriceGenerator(prices));
+                    Flight thisFlight = new Flight(i, j, randomPriceGenerator(prices));
                     Flights.add(thisFlight);
                 }
             }
@@ -100,7 +104,7 @@ public class Main {
      * Proper formatting for a NonStopFlight
      * Prints to Console
      */
-    static void printNonStopFlightInformation(FlightCost flight){
+    static void printNonStopFlightInformation(Flight flight){
         System.out.println("Nonstop: Start- " + flight.getStart() + " Dest- "+ flight.getDestination() +
                 " Cost- " +  flight.getCost());
     }
@@ -110,7 +114,7 @@ public class Main {
      * Prints to Console
      */
     static void printOneStopFlightInformation(OneStopFlight flight){
-        System.out.println("Onestop: Start- " + flight.getStart() + " Stop- " + flight.getStop() + " Dest- "+ flight.getDestination() +
+        System.out.println("Onestop: Start- " + flight.getStart() + " Stop- " + flight.getStopOne() + " Dest- "+ flight.getDestination() +
                 " Cost- " +  flight.getCost());
     }
 
@@ -118,7 +122,7 @@ public class Main {
      * Finds the flight that starts at the start and ends at the dest.
      * Utilizes a Stream Filter and then recollects into a list and we select the only element.
      */
-    static FlightCost findNonStopFlight(List<FlightCost> flights, int start, int dest){
+    static Flight findNonStopFlight(List<Flight> flights, int start, int dest){
         return flights.stream()
                 .filter(flight -> flight.getStart() == start && flight.getDestination() == dest)
                 .collect(Collectors.toList())
@@ -135,31 +139,32 @@ public class Main {
      * we then select the flight that leaves from the destination city of the first hope
      * and creates a OneStopFlight in our List of OneStopFlights
      */
-    static List<OneStopFlight> findOneStopFlights(List<FlightCost> flights, int start, int dest){
+    static List<OneStopFlight> findOneStopFlights(List<Flight> flights, int start, int dest){
 
+        // Extensible List
         List<OneStopFlight> OneStopFlights = new ArrayList<>();
 
-        List<FlightCost> leavingStart = flights.stream()
+        final List<Flight> leavingStart = flights.stream()
                 .filter(flight -> flight.getStart() == start && flight.getDestination() != dest)
                 .collect(Collectors.toList());
 
-        List<FlightCost> arrivingDestination = flights.stream()
+        final List<Flight> arrivingDestination = flights.stream()
                 .filter(flight -> flight.getDestination() == dest)
                 .collect(Collectors.toList());
 
-        for (FlightCost flightCost : leavingStart) {
+        for (Flight flight : leavingStart) {
 
-            FlightCost secondHop = arrivingDestination.stream()
-                    .filter(flightCost1 -> flightCost1.getStart() == flightCost.getDestination())
+            Flight secondHop = arrivingDestination.stream()
+                    .filter(flightCost1 -> flightCost1.getStart() == flight.getDestination())
                     .collect(Collectors.toList())
                     .get(0);
 
             OneStopFlights.add(
                     new OneStopFlight(
-                        flightCost.getStart(),
-                        flightCost.getDestination(),
+                        flight.getStart(),
+                        flight.getDestination(),
                         secondHop.getDestination(),
-                        flightCost.getCost()+secondHop.getCost()
+                        flight.getCost()+secondHop.getCost()
                     )
             );
         }
@@ -188,11 +193,46 @@ public class Main {
         do {
             System.out.println(prompt);
             while (!scanner.hasNextInt()){
+                System.out.println("That was not a number...");
                 System.out.println(prompt);
                 scanner.next();
             }
             validNumber = scanner.nextInt();
+            if (validNumber < 0 || totalAirports < validNumber){
+                System.out.println("Not a valid airport... Please try again.");
+            }
         } while (validNumber < 0 || totalAirports < validNumber);
+
+        return validNumber;
+    }
+
+    /**
+     * Added overloaded method to allow to insure that we cannot fly to where we already are.
+     */
+    static int getUserIntBetweenZeroAndMax(String prompt, int totalAirports, int notThisOne){
+        Scanner scanner = new Scanner(System.in);
+        int validNumber;
+        do {
+            // Repeat the prompt for them
+            System.out.println(prompt);
+
+            // Trigger to continue scanning until given a Int
+            while (!scanner.hasNextInt()){
+                System.out.println("That was not a number...");
+                System.out.println(prompt);
+                scanner.next();
+            }
+
+            validNumber = scanner.nextInt();
+
+            // Conditional Outputs To Help User Understand Their Errors
+            if(validNumber == notThisOne){
+                System.out.println("You cannot fly to where you already are... Please try again.");
+            }
+            if (validNumber < 0 || totalAirports < validNumber){
+                System.out.println("Not a valid airport... Please try again.");
+            }
+        } while (validNumber < 0 || totalAirports < validNumber || validNumber == notThisOne);
 
         return validNumber;
     }
@@ -204,14 +244,12 @@ public class Main {
      * This class is important because the constructor and the getter
      * methods are doing all the work for us.
      */
-    static class FlightCost{
+    static class Flight {
         int start;
         int destination;
         int cost;
 
-        public int getStart(){
-            return start;
-        }
+        public int getStart(){return start;}
         public int getDestination(){
             return destination;
         }
@@ -219,7 +257,7 @@ public class Main {
             return cost;
         }
 
-        public FlightCost(int start, int destination, int cost){
+        public Flight(int start, int destination, int cost){
             this.start = start;
             this.destination = destination;
             this.cost = cost;
@@ -229,16 +267,18 @@ public class Main {
     /**
      * Add a stop and the methods to construct a OneStopFlight
      */
-    static class OneStopFlight extends FlightCost{
-        int stop;
+    static class OneStopFlight extends Flight {
+        int stopOne;
 
-        public int getStop(){
-            return stop;
+        public int getStopOne(){
+            return stopOne;
         }
 
         public OneStopFlight(int start, int stop, int destination, int cost){
             super(start, destination,cost);
-            this.stop = stop;
+            this.stopOne = stop;
         }
     }
+
+
 }
