@@ -17,7 +17,7 @@ public class Main {
     public static void main(String[] args) {
 
         // Initial Computer Generated Variables
-        final int totalAirports = airportGenerator(100);
+        final int totalAirports = airportGenerator(5000);
         final int[] prices = {19, 29, 39, 49, 59, 69};
         final List<FlightCost> flights = generateFlights(totalAirports, prices);
 
@@ -64,6 +64,9 @@ public class Main {
     static int airportGenerator(int max){
         if(max <= 3){
             throw new IllegalArgumentException("Must be more than 3 airports");
+        }
+        if(max > 5000){
+            throw new IllegalArgumentException("Must be less than 5,000 airports");
         }
         return 3 + myRandom.nextInt(max - 3);
     }
