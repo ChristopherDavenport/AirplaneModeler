@@ -178,7 +178,7 @@ public class Main {
      */
     static OneStopFlight cheapestOneStopFlight(List<OneStopFlight> OneStopFlights){
         return OneStopFlights.stream()
-                .min(Comparator.comparing(oneStopFlight -> oneStopFlight.getCost()))
+                .min(Comparator.comparing(Flight::getCost))
                 .get();
     }
 
@@ -279,6 +279,5 @@ public class Main {
             this.stopOne = stop;
         }
     }
-
 
 }
