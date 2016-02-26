@@ -43,7 +43,8 @@ public class Main {
         // Finds Singular NonStopFlight
         final Flight nonStopFlight = findNonStopFlight(flights, startingCity, destinationCity);
 
-        // Finds all OneStopFlights
+        // Finds all OneStopFlights From startingCity to DestinationCity
+        // TODO Extend to Create All OneStopFlight should only take flights as an input
         final List<OneStopFlight> oneStopFlights= findOneStopFlights(flights, startingCity, destinationCity);
 
         // Narrows All OneStopFlights down the the Cheapest One
